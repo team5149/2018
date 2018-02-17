@@ -99,6 +99,7 @@ public class Robot extends IterativeRobot {
 	 * switch structure below with additional strings. If using the SendableChooser
 	 * make sure to add them to the chooser code above as well.
 	 */
+	
 	@Override
 	public void autonomousInit() {
 		autoSelected = chooser.getSelected();
@@ -106,41 +107,65 @@ public class Robot extends IterativeRobot {
 		// defaultAuto);
 		gyro.calibrate();
 		gyro.reset();
-
-		System.out.println("Auto selected: " + autoSelected);
+		phase = forwardPhase;
+		phaseStartTime = System.currentTimeMillis();
+		
 	}
-
+	int phase;
+	final int forwardPhase = 0;
+	final double forwardTime = 5000;
+	
+	final int turnPhase = 1;
+	final double turnTime = 1000;
+	
+	final int approachPhase = 2;
+	final double approachTime = 2000;
+	
+	final int dropPhase = 3;
+	final int done = 4;
+	
+	double phaseStartTime;
 	/**
 	 * This function is called periodically during autonomous
 	 */
 	@Override
 	public void autonomousPeriodic() {
-		double timeStamp = System.currentTimeMillis();
-		switch (autoSelected) {
-		case customAuto:
-			// Put custom auto code here
-			while (isAutonomous() && isEnabled()) {
-				robot.tankDrive(speed,  speed);
-			} 
-			break;
-		case defaultAuto:
-		default:
-			while (isAutonomous() && isEnabled()) {
-				double kp = 0.013;
-				double angle = gyro.getAngle();
-				double error = 90 - angle;
-				double output = kp*error ;
-				if (90 > Math.abs(angle)) {
-					robot.tankDrive(output, -1.0*output);
-					System.out.println("angle is " + angle + "\tOutput is " + output );
-				}
-				
-		
+		double elaspedPhaseTime = System.currentTimeMillis() - phaseStartTime;
+		if (phase == forwardPhase) {
+			if (forwardTime > elaspedPhaseTime ) {
+				phase = turnPhase;
+				phaseStartTime = System.currentTimeMillis();
 			}
-		
+			else {
+				autonDriveForward();
+			}
 		}
+		else if (phase == turnPhase) {
+			if (turnTime > elaspedPhaseTime ) {
+				phase = turnPhase;
+				phaseStartTime = System.currentTimeMillis();
+			}
+			else {
+			
+			}
+		}
+		else if (phase == approachPhase) {
+			
+		}
+		else if (phase == dropPhase) {
+			
+		}
+		else if (phase == done) {
+			
+		}
+		
 	}
-
+	
+	public void autonDriveForward() {
+		double power = .5;
+		
+		robot.tankDrive(power, power);
+	}
 	/**
 	 * This function is called periodically during operator control
 	 */
