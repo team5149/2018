@@ -128,101 +128,74 @@ public class Robot extends IterativeRobot {
 	// Git comment test
 	@Override
 	public void teleopPeriodic() {
+		
 		boolean down = false;
-		boolean switchMode = false;
+		boolean switchMode = false;  // When true, the power values will be multiplied by the slow power, reducing the total power
 		//limitSwitch = new DigitalInput(1);
 		gyro.reset();
 	
 		while (isOperatorControl() && isEnabled()) {
-			double leftPower  = driver.getRawAxis(DRIVER_LEFT_AXIS);
-			double rightPower = driver.getRawAxis(1);
+			double leftPower;		// Amount of power that should go to the left motor (between 0 and 1)
+			double rightPower;		// Amount of power that should go the the right motor (between 0 and 1)
+			double speedFactor;		// Factor by which the left and right powers are multiplied by, will reduce powers if less than 1
+			boolean switchModeButton; // Keeps track of button, that when pressed, will toggle the state of switchMode 
+			double rightOffset; // The offset of the rightPower, which when greater than 0, will curve the robot right
+			double leftOffset;  // The offset of the leftPower, which when greater than 0, will curve the robot left
+			double rightMultipler;  // Amount by which the rightOffset is multiplied by, used to increase the sharpness of the curve 
+			double leftMultipler;	// Amount by which the leftOffset is multiplied by, used to increase the sharpness of the curve
+			int dpad;			// Keeps track of which dPad direction is pressed
+			double lSwitchState;	// keeps track of the limitSwitch state
 			
-			boolean zero = false;
-			leftPower = rightPower;
-			if ( rightPower < .05 && rightPower > -0.05) {
-				rightPower = turnX;
-				leftPower = -1 * rightPower;
-				zero = true;
-			}
+			leftPower  = driver.getRawAxis(DRIVER_LEFT_AXIS);		// Get the position of the left axis 
+			rightPower = driver.getRawAxis(DRIVER_RIGHT_AXIS);		// Get the position of the right axis
 			
-			if (!zero) {
-				if (turnX > 0 ) {
-					leftPower -= turnX;
-				}else if (turnX < 0) {
-					rightPower += turnX;
-				}
-			}
-			System.out.println(rightPower);
-			robot.tankDrive(rightPower, leftPower);
-		
-			double slowFactor = 1;
-
-			boolean buttonPressed = driver.getRawButton(DRIVER_SWITCH_MODE_BUTTON);
-			if (buttonPressed && !down) {
+			switchModeButton = driver.getRawButton(DRIVER_SWITCH_MODE_BUTTON);	// Get the current state of the switchModeButton
+			
+			rightMultipler = driver.getRawAxis(3);		// Get the intensity of the right bumper
+			leftMultipler = driver.getRawAxis(2);		// Get the intensity of the left bumper
+			
+			rightOffset = .4 * (1+rightMultipler);		
+			leftOffset = .4 * (1 + leftMultipler);
+	
+			dpad = driver.getPOV(0);				// Get the dpad direction pressed in degrees
+			
+			if (rightPower < 0)
+				rightOffset *= -1;
+			if (leftPower < 0)
+				leftOffset *= -1;
+			
+			if (switchModeButton && !down) {		// down checks if the button was already pressed
 				switchMode = !switchMode;
 				down = true;
-			} else if (!buttonPressed) {
+			} else if (!switchModeButton) {
 				down = false;
-
 			}
 
-			slowFactor = (switchMode) ? .5 : 1;
+			speedFactor = (switchMode) ? .5 : 1;
 
-			System.out.println("leftpower before is " + leftPower + " right Power before is " + rightPower);
-			leftPower = leftPower * slowFactor;
-			rightPower = rightPower * slowFactor;
+			leftPower = leftPower * speedFactor;
+			rightPower = rightPower * speedFactor;
 			
-			
-			double roffset = 0;
-			double loffset = 0;
-			double rightMultipler = driver.getRawAxis(3);
-			double leftMultipler = driver.getRawAxis(2);
-			
-			if (driver.getRawButton(DRIVER_RIGHT_TRIGGER)) {
-				//leftPower = rightPower;
-				if (rightPower > 0) {
-					//rightPower -= .4 * (1 + rightMultipler);
-					roffset = .4 * (1 + rightMultipler);
-					
-				}
-				else {
-					//rightPower += .4 * (1 + rightMultipler);
-					roffset = -1 * .4 * (1+rightMultipler);
-				}
-			}else if (driver.getRawButton(DRIVER_LEFT_TRIGGER)) {
-				if (leftPower > 0) {
-					//leftPower -= .4 * (1 + leftMultipler);
-					loffset = .4 * (1 + leftMultipler);
-			
-				}
-				else {
-					//leftPower += .4 * (1 + leftMultipler);
-					loffset = -1 * .4 * (1+leftMultipler);
-			
-				}
-			}
-			
-			System.out.println("right multiplier is " + rightMultipler) ;
-			int dpad = driver.getPOV(0);
-			if (driver.getRawButton(3)) {
-				speed += 0.25;
-			}else if (driver.getRawButton(4)){
-				speed -= 0.25;
-			}
+			if (!driver.getRawButton(DRIVER_RIGHT_TRIGGER))
+				rightOffset = 0;
+			if (!driver.getRawButton(DRIVER_LEFT_TRIGGER))
+				leftOffset = 0;
+
 			switch (dpad) {
 			case DRIVER_SPIN_RIGHT_POV:
-				robot.tankDrive(1 * slowFactor, -1 * slowFactor);
+				robot.tankDrive(1 * speedFactor, -1 * speedFactor);
 				break;
 			case DRIVER_SPIN_LEFT_POV:
-				robot.tankDrive(-1 * slowFactor, 1 * slowFactor);
+				robot.tankDrive(-1 * speedFactor, 1 * speedFactor);
 				break;
 			case 180:
-				robot.tankDrive(rightPower - roffset, rightPower - loffset);
+				robot.tankDrive(rightPower - rightOffset, rightPower - leftOffset);
 				break;
 
 				
 			default:
-				robot.tankDrive(rightPower - roffset, leftPower-loffset);
+				
+				robot.tankDrive(rightPower - rightOffset, leftPower-leftOffset);
 			}
 			//boolean state = limitSwitch.get();
 			SmartDashboard.putNumber("Current Auto Speed" , speed);
@@ -241,28 +214,6 @@ public class Robot extends IterativeRobot {
 	@Override
 	public void testPeriodic() {
 	}
+
 	
-	public void turnAngle(double desiredAngle) {
-		
-		double kp = 0.013;
-		double angle = gyro.getAngle();
-		if (desiredAngle > 0)
-			desiredAngle += 270;
-		while (desiredAngle > Math.abs(angle)) {
-			angle = gyro.getAngle();
-			double error = desiredAngle - angle;
-			double output = kp*error ;
-			robot.tankDrive(output, -1.0*output);
-		}
-	
-	}
-	public double getAngle() {
-		double degrees = Math.toDegrees(Math.atan2(driver.getRawAxis(1), driver.getRawAxis(0))) ;
-		if (degrees < 0)
-			degrees += 360;
-		if (driver.getRawAxis(0) == 0)
-			degrees = 0;
-		System.out.println("x axis " + driver.getRawAxis(0) + " y axis " + driver.getRawAxis(1));
-		return degrees;
-	}
 }
