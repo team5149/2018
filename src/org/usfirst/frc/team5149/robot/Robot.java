@@ -66,10 +66,12 @@ public class Robot extends IterativeRobot {
 	static boolean down = false;
 	static boolean switchMode = false;
 	
+	Talon leftMotor = new Talon(LEFT_MOTOR_PORT);
+	Talon rightMotor = new Talon(RIGHT_MOTOR_PORT);
 	DigitalInput topSwitch= new DigitalInput(SWITCH_TOP_PORT);
 	DigitalInput bottomSwitch = new DigitalInput(SWITCH_BOTTOM_PORT);
 	SendableChooser<String> chooser = new SendableChooser<>();
-	DifferentialDrive robot = new DifferentialDrive(LEFT_MOTOR_PORT, RIGHT_MOTOR_PORT);
+	DifferentialDrive robot = new DifferentialDrive(leftMotor, rightMotor);
 	
 	
 	Talon elevator = new Talon(ELEVATOR_PORT);
