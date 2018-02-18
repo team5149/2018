@@ -22,6 +22,10 @@ import edu.wpi.first.wpilibj.DigitalInput;
  * directory.
  */
 public class Robot extends IterativeRobot {
+	private static final double FORWARD_SPEED = .65;
+	private static final double APPROACH_SPEED = .5;
+
+
 	@Override
 	public void disabledPeriodic() {
 		// TODO Auto-generated method stub
@@ -121,7 +125,7 @@ public class Robot extends IterativeRobot {
 	}
 	int phase;
 	final int forwardPhase = 0;
-	final double forwardTime = 5000;
+	final double forwardTime = 3000;
 	
 	final int turnPhase = 1;
 	final double turnTime = 1500;
@@ -129,8 +133,13 @@ public class Robot extends IterativeRobot {
 	final int approachPhase = 2;
 	final double approachTime = 2000;
 	
+	final int elevatorPhase = 3;
+	final double elevatorTime = 4000;
+	
 	final int dropPhase = 3;
 	final double dropTime = 1000;
+	
+
 	final int done = 4;
 	
 	double phaseStartTime;
@@ -140,14 +149,14 @@ public class Robot extends IterativeRobot {
 	@Override
 	public void autonomousPeriodic() {
 		double elaspedPhaseTime = System.currentTimeMillis() - phaseStartTime;
-		liftElevator();
+	
 		if (phase == forwardPhase) {
 			if (forwardTime > elaspedPhaseTime ) {
 				phase = turnPhase;
 				phaseStartTime = System.currentTimeMillis();
 			}
 			else {
-				autonDriveForward(.65);
+				autonDriveForward(FORWARD_SPEED);
 			}
 		}
 		else if (phase == turnPhase) {
@@ -163,9 +172,19 @@ public class Robot extends IterativeRobot {
 			if (approachTime > elaspedPhaseTime ) {
 				phase = dropPhase;
 				phaseStartTime = System.currentTimeMillis();
+				zeroAllMotors();
 			}
 			else {
-				autonDriveForward(.5);
+				autonDriveForward(APPROACH_SPEED);
+			}
+		}
+		else if (phase == elevatorPhase) {
+			if (approachTime > elaspedPhaseTime ) {
+				phase = dropPhase;
+				phaseStartTime = System.currentTimeMillis();
+			}
+			else {
+				liftElevator();
 			}
 		}
 		else if (phase == dropPhase) {
@@ -178,7 +197,7 @@ public class Robot extends IterativeRobot {
 			}
 		}
 		else if (phase == done) {
-			
+			zeroAllMotors();
 		}
 		
 	}
@@ -202,10 +221,9 @@ public class Robot extends IterativeRobot {
 	}
 	
 	public void liftElevator() {
-		if (topSwitch.get())
-			elevator.set(1);
-		
+		setElevatorPowerSafe(1.0);
 	}
+	
 	public void spinGrabber() {
 		double speed = .5;
 		rightGrabber.set(speed);
@@ -220,6 +238,12 @@ public class Robot extends IterativeRobot {
 		double output = error * kp;
 		robot.tankDrive(output, -1 * output);
 		
+	}
+	public void zeroAllMotors() {
+		robot.tankDrive(0,0);
+		rightGrabber.set(0);
+		leftGrabber.set(0);
+		elevator.set(0);
 	}
 	/**
 	 * This function is called periodically during operator control
@@ -320,6 +344,11 @@ public class Robot extends IterativeRobot {
 	
 	public void elevator() {
 		double elevatorPower = manipulator.getRawAxis(ELEVATOR_AXIS);
+		setElevatorPowerSafe(elevatorPower);
+		
+	}
+
+	private void setElevatorPowerSafe(double elevatorPower) {
 		boolean top = !topSwitch.get();
 		boolean bottom = !bottomSwitch.get();
 		boolean stopTop = elevatorPower < 0 && top;
@@ -331,7 +360,6 @@ public class Robot extends IterativeRobot {
 		else {
 			elevator.set(elevatorPower);
 		}
-		
 	}
 	
 	public void grabber() {
