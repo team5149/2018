@@ -6,6 +6,7 @@ import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.Talon;
@@ -68,7 +69,7 @@ public class Robot extends IterativeRobot {
 	DigitalInput topSwitch= new DigitalInput(SWITCH_TOP_PORT);
 	DigitalInput bottomSwitch = new DigitalInput(SWITCH_BOTTOM_PORT);
 	SendableChooser<String> chooser = new SendableChooser<>();
-	RobotDrive robot = new RobotDrive(LEFT_MOTOR_PORT, RIGHT_MOTOR_PORT);
+	DifferentialDrive robot = new DifferentialDrive(LEFT_MOTOR_PORT, RIGHT_MOTOR_PORT);
 	
 	
 	Talon elevator = new Talon(ELEVATOR_PORT);
