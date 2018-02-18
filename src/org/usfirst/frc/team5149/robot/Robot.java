@@ -1,6 +1,7 @@
 package org.usfirst.frc.team5149.robot;
 
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
@@ -34,7 +35,7 @@ public class Robot extends IterativeRobot {
 	final String customAuto = "My Auto";
 	String autoSelected;
 	
-	double speed = 0.25;
+	
 	final static int LEFT_MOTOR_PORT = 9 ;
 	final static int RIGHT_MOTOR_PORT = 8;
 	final static int DRIVER_JOYSTICK_PORT = 0;
@@ -51,13 +52,16 @@ public class Robot extends IterativeRobot {
 	final static int DRIVER_SPIN_LEFT_POV = 270;
 	final static int ELEVATOR_PORT = 7;
 	final static int CLIMBER_PORT =6;
-	final static int RIGHT_GRABBER_PORT = 1;
-	final static int LEFT_GRABBER_PORT = 2;
+	final static int RIGHT_GRABBER_PORT = 4;
+	final static int LEFT_GRABBER_PORT = 5;
 	final static int MANIPULATOR_JOYSTICK_PORT = 1;
 	private static final int ELEVATOR_AXIS = 1;
-	private static final int GRABBER_AXIS = 0;
+	private static final int GRABBER_AXIS = 5;
 	private static final int SWITCH_TOP_PORT = 0;
 	private static final int SWITCH_BOTTOM_PORT = 1;
+	private static final int DRIVER_RIGHT_BUMPER = 3;
+	private static final int DRIVER_LEFT_BUMPER = 2;
+	private static final int MANIPULATOR_RELEASE_BUTTON = 0;
 	static boolean down = false;
 	static boolean switchMode = false;
 	
@@ -84,6 +88,7 @@ public class Robot extends IterativeRobot {
 	public void robotInit() {
 		chooser.addDefault("Default Auto", defaultAuto);
 		chooser.addObject("My Auto", customAuto);
+		CameraServer.getInstance().startAutomaticCapture();
 		SmartDashboard.putData("Auto choices", chooser);
 		
 	}
@@ -116,12 +121,13 @@ public class Robot extends IterativeRobot {
 	final double forwardTime = 5000;
 	
 	final int turnPhase = 1;
-	final double turnTime = 1000;
+	final double turnTime = 1500;
 	
 	final int approachPhase = 2;
 	final double approachTime = 2000;
 	
 	final int dropPhase = 3;
+	final double dropTime = 1000;
 	final int done = 4;
 	
 	double phaseStartTime;
@@ -131,29 +137,42 @@ public class Robot extends IterativeRobot {
 	@Override
 	public void autonomousPeriodic() {
 		double elaspedPhaseTime = System.currentTimeMillis() - phaseStartTime;
+		liftElevator();
 		if (phase == forwardPhase) {
 			if (forwardTime > elaspedPhaseTime ) {
 				phase = turnPhase;
 				phaseStartTime = System.currentTimeMillis();
 			}
 			else {
-				autonDriveForward();
+				autonDriveForward(.65);
 			}
 		}
 		else if (phase == turnPhase) {
 			if (turnTime > elaspedPhaseTime ) {
-				phase = turnPhase;
+				phase = approachPhase;
 				phaseStartTime = System.currentTimeMillis();
 			}
 			else {
-			
+				turnAngle();
 			}
 		}
 		else if (phase == approachPhase) {
-			
+			if (approachTime > elaspedPhaseTime ) {
+				phase = dropPhase;
+				phaseStartTime = System.currentTimeMillis();
+			}
+			else {
+				autonDriveForward(.5);
+			}
 		}
 		else if (phase == dropPhase) {
-			
+			if (approachTime > elaspedPhaseTime ) {
+				phase = done;
+				phaseStartTime = System.currentTimeMillis();
+			}
+			else {
+				spinGrabber();
+			}
 		}
 		else if (phase == done) {
 			
@@ -161,10 +180,43 @@ public class Robot extends IterativeRobot {
 		
 	}
 	
-	public void autonDriveForward() {
-		double power = .5;
+	public void autonDriveForward(double power) {
+	
+		double angle = gyro.getAngle();
+		if (angle > 180) {
+			angle -= 360;
+		}
+		if (angle > 10 || angle < -10) {
+			double kp = 0.011;
+			double output = kp * angle;
+			double leftPower = power - output;
+			double rightPower = power + output;
+			robot.tankDrive(rightPower, leftPower);
+		}
+		else {
+			robot.tankDrive(power, power);
+		}
+	}
+	
+	public void liftElevator() {
+		if (topSwitch.get())
+			elevator.set(1);
 		
-		robot.tankDrive(power, power);
+	}
+	public void spinGrabber() {
+		double speed = .5;
+		rightGrabber.set(speed);
+		leftGrabber.set(-1 * speed);
+	}
+	
+	public void turnAngle() {
+		double desiredAngle = 90;
+		double angle = gyro.getAngle();
+		double kp = 0.011;
+		double error = desiredAngle - angle;
+		double output = error * kp;
+		robot.tankDrive(output, -1 * output);
+		
 	}
 	/**
 	 * This function is called periodically during operator control
@@ -208,8 +260,8 @@ public class Robot extends IterativeRobot {
 					
 					switchModeButton = driver.getRawButton(DRIVER_SWITCH_MODE_BUTTON);	// Get the current state of the switchModeButton
 					
-					rightMultipler = driver.getRawAxis(3);		// Get the intensity of the right bumper
-					leftMultipler = driver.getRawAxis(2);		// Get the intensity of the left bumper
+					rightMultipler = driver.getRawAxis(DRIVER_RIGHT_BUMPER);		// Get the intensity of the right bumper
+					leftMultipler = driver.getRawAxis(DRIVER_LEFT_BUMPER);		// Get the intensity of the left bumper
 					
 					rightOffset = .4 * (1+rightMultipler);		
 					leftOffset = .4 * (1 + leftMultipler);
@@ -263,7 +315,6 @@ public class Robot extends IterativeRobot {
 		
 	}
 	
-	
 	public void elevator() {
 		double elevatorPower = manipulator.getRawAxis(ELEVATOR_AXIS);
 		boolean top = !topSwitch.get();
@@ -279,8 +330,12 @@ public class Robot extends IterativeRobot {
 		}
 		
 	}
+	
 	public void grabber() {
 		double grabberPower = manipulator.getRawAxis(GRABBER_AXIS);
+		if (manipulator.getRawButton(MANIPULATOR_RELEASE_BUTTON)) {
+			grabberPower = -.5;
+		}
 		rightGrabber.set(grabberPower);
 		leftGrabber.set(-1 *grabberPower);
 	}
