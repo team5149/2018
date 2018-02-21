@@ -14,28 +14,22 @@ import edu.wpi.first.wpilibj.interfaces.Accelerometer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 /**
  * The VM is configured to automatically run this class, and to call the
  * functions corresponding to each mode, as described in the IterativeRobot
  * documentation. If you change the name of this class or the package after
  * creating this project, you must also update the manifest file in the resource
  * directory.
+ * 
  */
 public class Robot extends IterativeRobot {
-	private static final double FORWARD_SPEED = .65;
-	private static final double APPROACH_SPEED = .5;
+	private static final double FORWARD_SPEED = -.5;
+	private static final double APPROACH_SPEED = -.5;
 
 
-	@Override
-	public void disabledPeriodic() {
-		// TODO Auto-generated method stub
-		double angle = driver.getDirectionDegrees();
-		System.out.println(angle);
-		System.out.println("Gyro is " + gyro.getAngle());
-		Timer.delay(0.5);
-		super.disabledPeriodic();
-	}
-
+	
 	final String defaultAuto = "Default";
 	final String customAuto = "My Auto";
 	String autoSelected;
@@ -66,9 +60,19 @@ public class Robot extends IterativeRobot {
 	private static final int SWITCH_BOTTOM_PORT = 1;
 	private static final int DRIVER_RIGHT_BUMPER = 3;
 	private static final int DRIVER_LEFT_BUMPER = 2;
-	private static final int MANIPULATOR_RELEASE_BUTTON = 0;
+	private static final int MANIPULATOR_RELEASE_BUTTON = 1;
+	private static final int MANIPULATOR_GRAB_BUTTON = 3;
+	private static final int MANIPULATOR_ELEVATOR_UP = 2;
+	private static final int MANIPULATOR_ELEVATOR_DOWN = 4;
+	private static final int DRIVER_FORWARD_POV = 0;
+	private static final int DRIVER_BACKWARD_POV = 180;
+	private static final int DRIVER_REVERSE_DIRECTION_BUTTON = 3;
+	private static final int CLIMBER_BUMPER = 3;
+	private static final int CLIMBER_BUMPER_LEFT = 2;
 	static boolean down = false;
 	static boolean switchMode = false;
+	static boolean switchDirectionDown = false;
+	static boolean switchDirection= false;
 	
 	Talon leftMotor = new Talon(LEFT_MOTOR_PORT);
 	Talon rightMotor = new Talon(RIGHT_MOTOR_PORT);
@@ -79,14 +83,14 @@ public class Robot extends IterativeRobot {
 	
 	
 	Talon elevator = new Talon(ELEVATOR_PORT);
-	Talon climber = new Talon(CLIMBER_PORT);
+	Spark climber = new Spark(CLIMBER_PORT);
 	Spark rightGrabber = new Spark(RIGHT_GRABBER_PORT);
 	Spark leftGrabber = new Spark(LEFT_GRABBER_PORT);
 	Joystick driver = new Joystick(DRIVER_JOYSTICK_PORT);
 	Joystick manipulator = new Joystick(MANIPULATOR_JOYSTICK_PORT);
 	ADXRS450_Gyro gyro = new ADXRS450_Gyro(SPI.Port.kOnboardCS0);
 	
-
+	String gameData;
 	/**
 	 * This function is run when the robot is first started up and should be used
 	 * for any initialization code.
@@ -114,13 +118,16 @@ public class Robot extends IterativeRobot {
 	
 	@Override
 	public void autonomousInit() {
-		autoSelected = chooser.getSelected();
+		//autoSelected = chooser.getSelected();
 		// autoSelected = SmartDashboard.getString("Auto Selector",
 		// defaultAuto);
 		gyro.calibrate();
 		gyro.reset();
 		phase = forwardPhase;
 		phaseStartTime = System.currentTimeMillis();
+		//gameData = DriverStation.getInstance().getGameSpecificMessage();
+		System.out.println("test test");
+	
 		
 	}
 	int phase;
@@ -128,12 +135,12 @@ public class Robot extends IterativeRobot {
 	final double forwardTime = 3000;
 	
 	final int turnPhase = 1;
-	final double turnTime = 1500;
+	final double turnTime = 3000;
 	
 	final int approachPhase = 2;
 	final double approachTime = 2000;
 	
-	final int elevatorPhase = 3;
+	final int elevatorPhase = 30;
 	final double elevatorTime = 4000;
 	
 	final int dropPhase = 3;
@@ -141,26 +148,30 @@ public class Robot extends IterativeRobot {
 	
 
 	final int done = 4;
-	
+	boolean test = true;
 	double phaseStartTime;
 	/**
 	 * This function is called periodically during autonomous
 	 */
 	@Override
 	public void autonomousPeriodic() {
+		
+		
 		double elaspedPhaseTime = System.currentTimeMillis() - phaseStartTime;
 	
+		System.out.println("working");
 		if (phase == forwardPhase) {
-			if (forwardTime > elaspedPhaseTime ) {
+			if (forwardTime < elaspedPhaseTime ) {
 				phase = turnPhase;
 				phaseStartTime = System.currentTimeMillis();
 			}
 			else {
 				autonDriveForward(FORWARD_SPEED);
+				System.out.println("testing");
 			}
 		}
 		else if (phase == turnPhase) {
-			if (turnTime > elaspedPhaseTime ) {
+			if (turnTime < elaspedPhaseTime ) {
 				phase = approachPhase;
 				phaseStartTime = System.currentTimeMillis();
 			}
@@ -169,7 +180,7 @@ public class Robot extends IterativeRobot {
 			}
 		}
 		else if (phase == approachPhase) {
-			if (approachTime > elaspedPhaseTime ) {
+			if (approachTime < elaspedPhaseTime ) {
 				phase = dropPhase;
 				phaseStartTime = System.currentTimeMillis();
 				zeroAllMotors();
@@ -179,7 +190,7 @@ public class Robot extends IterativeRobot {
 			}
 		}
 		else if (phase == elevatorPhase) {
-			if (approachTime > elaspedPhaseTime ) {
+			if (approachTime < elaspedPhaseTime ) {
 				phase = dropPhase;
 				phaseStartTime = System.currentTimeMillis();
 			}
@@ -188,7 +199,7 @@ public class Robot extends IterativeRobot {
 			}
 		}
 		else if (phase == dropPhase) {
-			if (approachTime > elaspedPhaseTime ) {
+			if (approachTime < elaspedPhaseTime ) {
 				phase = done;
 				phaseStartTime = System.currentTimeMillis();
 			}
@@ -198,17 +209,20 @@ public class Robot extends IterativeRobot {
 		}
 		else if (phase == done) {
 			zeroAllMotors();
+			System.out.println("done done done");
 		}
 		
 	}
 	
 	public void autonDriveForward(double power) {
-	
+		
+		robot.tankDrive(power, power);
+		/**
 		double angle = gyro.getAngle();
 		if (angle > 180) {
 			angle -= 360;
 		}
-		if (angle > 10 || angle < -10) {
+		if (angle > 10 || angle < -10 && 0!= 0 ) {
 			double kp = 0.011;
 			double output = kp * angle;
 			double leftPower = power - output;
@@ -218,6 +232,7 @@ public class Robot extends IterativeRobot {
 		else {
 			robot.tankDrive(power, power);
 		}
+		**/
 	}
 	
 	public void liftElevator() {
@@ -231,7 +246,7 @@ public class Robot extends IterativeRobot {
 	}
 	
 	public void turnAngle() {
-		double desiredAngle = 90;
+		double desiredAngle = 110;
 		double angle = gyro.getAngle();
 		double kp = 0.011;
 		double error = desiredAngle - angle;
@@ -257,6 +272,7 @@ public class Robot extends IterativeRobot {
 		driveOptions();
 		elevator();
 		grabber();
+		climber();
 
 	}
 
@@ -280,12 +296,14 @@ public class Robot extends IterativeRobot {
 					double rightMultipler;  // Amount by which the rightOffset is multiplied by, used to increase the sharpness of the curve 
 					double leftMultipler;	// Amount by which the leftOffset is multiplied by, used to increase the sharpness of the curve
 					int dpad;			// Keeps track of which dPad direction is pressed
+					boolean switchDirectionButton;
 					
 					
 					leftPower  = driver.getRawAxis(DRIVER_LEFT_AXIS);		// Get the position of the left axis 
 					rightPower = driver.getRawAxis(DRIVER_RIGHT_AXIS);		// Get the position of the right axis
 					
 					switchModeButton = driver.getRawButton(DRIVER_SWITCH_MODE_BUTTON);	// Get the current state of the switchModeButton
+					switchDirectionButton = driver.getRawButton(DRIVER_REVERSE_DIRECTION_BUTTON);
 					
 					rightMultipler = driver.getRawAxis(DRIVER_RIGHT_BUMPER);		// Get the intensity of the right bumper
 					leftMultipler = driver.getRawAxis(DRIVER_LEFT_BUMPER);		// Get the intensity of the left bumper
@@ -307,8 +325,22 @@ public class Robot extends IterativeRobot {
 						down = false;
 					}
 
+					
+					if (switchDirectionButton  && !switchDirectionDown) {
+						
+						switchDirection = !switchDirection;
+						switchDirectionDown = true;
+					}else if (!switchDirectionButton){
+						switchDirectionDown = false;
+					}
 					speedFactor = (switchMode) ? .5 : 1;
-
+					
+					if (switchDirection) {
+						speedFactor *= -1;
+						double tmp = leftPower;
+						leftPower = rightPower;
+						rightPower = tmp;
+					}
 					leftPower = leftPower * speedFactor;
 					rightPower = rightPower * speedFactor;
 					
@@ -324,10 +356,12 @@ public class Robot extends IterativeRobot {
 					case DRIVER_SPIN_LEFT_POV:
 						robot.tankDrive(-1 * speedFactor, 1 * speedFactor);
 						break;
-					case 180:
-						robot.tankDrive(rightPower - rightOffset, rightPower - leftOffset);
+					case DRIVER_FORWARD_POV:
+						robot.tankDrive(-1 * speedFactor, -1 * speedFactor);
 						break;
-
+					case DRIVER_BACKWARD_POV:
+						robot.tankDrive(1 * speedFactor, 1 * speedFactor);
+						break;
 						
 					default:
 						
@@ -343,7 +377,13 @@ public class Robot extends IterativeRobot {
 	}
 	
 	public void elevator() {
-		double elevatorPower = manipulator.getRawAxis(ELEVATOR_AXIS);
+		double elevatorPower = manipulator.getRawAxis(ELEVATOR_AXIS); // multiplied by negative one, on robot they inverted
+		if (manipulator.getRawButton(MANIPULATOR_ELEVATOR_UP)) {
+			elevatorPower = .5;
+		}
+		else if (manipulator.getRawButton(MANIPULATOR_ELEVATOR_DOWN)) {
+			elevatorPower = -.5;
+		}
 		setElevatorPowerSafe(elevatorPower);
 		
 	}
@@ -356,19 +396,47 @@ public class Robot extends IterativeRobot {
 		
 		if (stopTop || stopBottom) {
 			elevator.set(0);
+			rumble();
 		}
 		else {
 			elevator.set(elevatorPower);
+			stopRumble();
 		}
 	}
 	
 	public void grabber() {
-		double grabberPower = manipulator.getRawAxis(GRABBER_AXIS);
+		double grabberPower = -1 * manipulator.getRawAxis(GRABBER_AXIS);
 		if (manipulator.getRawButton(MANIPULATOR_RELEASE_BUTTON)) {
 			grabberPower = -.5;
+		}
+		else if (manipulator.getRawButton(MANIPULATOR_GRAB_BUTTON)) {
+			grabberPower = .5;
 		}
 		rightGrabber.set(grabberPower);
 		leftGrabber.set(-1 *grabberPower);
 	}
+	public void climber() {
+		double climberPower = -1 * manipulator.getRawAxis(CLIMBER_BUMPER);
+		boolean safe1= manipulator.getRawAxis(CLIMBER_BUMPER_LEFT) > .3;
+		
+		if (safe1) {
+			rumble();
+			climber.set(climberPower);
+		}else {
+			stopRumble();
+			climber.set(0);
+		}
+	}
 	
+	public void rumble() {
+		manipulator.setRumble(RumbleType.kLeftRumble,.7);
+		manipulator.setRumble(RumbleType.kRightRumble, .7);
+		
+		
+	}
+	public void stopRumble() {
+		manipulator.setRumble(RumbleType.kLeftRumble,0);
+		manipulator.setRumble(RumbleType.kRightRumble, 0);
+	
+	}
 }
