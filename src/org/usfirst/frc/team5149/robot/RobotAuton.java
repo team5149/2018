@@ -44,7 +44,7 @@ public class RobotAuton {
 				phases[4] = LIFT;
 				phases[5] = RELEASE;
 				times = new int[6];
-				times[0] = 1000;
+				times[0] = 3000;
 				times[1] = 1000;
 				times[2] = 1000;
 				times[3] = 1000;
@@ -60,7 +60,7 @@ public class RobotAuton {
 				phases[4] = LIFT;
 				phases[5] = RELEASE;
 				times = new int[6];
-				times[0] = 1000;
+				times[0] = 3000;
 				times[1] = 1000;
 				times[2] = 1000;
 				times[3] = 1000;
@@ -71,16 +71,18 @@ public class RobotAuton {
 				phases[0] = STABILIZE;
 				phases[1] = FORWARD;
 				times = new int[2];
-				times[0] = 1000;
+				times[0] = 3000;
 				times[1] = 1000;
 			}
 			
 		}
 		else if (position == 1 || position == 4) {
-			phases = new int[1];
-			phases[0] = FORWARD;
-			times = new int[1];
-			times[0] = 1000;
+			phases = new int[2];
+			phases[0] = STABILIZE;
+			phases[1] = FORWARD;
+			times = new int[2];
+			times[0] = 3000;
+			times[1] = 1000;
 		}
 		else if (position == 2 || position == 3) {
 			if (ourSwitch == 'L') {
@@ -125,9 +127,18 @@ public class RobotAuton {
 			
 		}
 	}
-	public void stabilizeBox() {}
-	public void liftElevator() {
-		double elevatorPower = 1;
+	public void stabilizeBox(double passedTime) {
+		if (passedTime < 1000) {
+			liftElevator(1);
+		}
+		else if (passedTime < 2000) {
+			liftElevator(-1);
+		}
+		else if (passedTime < 3500) {
+			runGrabber(-.3);
+		}
+	}
+	public void liftElevator(double elevatorPower) {
 		boolean top = !topSwitch.get();
 		boolean bottom = !bottomSwitch.get();
 		boolean stopTop = elevatorPower < 0 && top;
@@ -148,8 +159,8 @@ public class RobotAuton {
 
 		}
 	}
-	public void releaseBox() {
-		double speed = .3;
+	public void runGrabber(double power) {
+		double speed = power;
 
 		rightArm.set(speed);
 
@@ -228,9 +239,9 @@ public class RobotAuton {
 
 		elevator.set(0);
 	}
-	public void runCurrentPhase(int i ) {
+	public void runCurrentPhase(int i,double passedTime) {
 		if (phases[i] == STABILIZE) {
-			stabilizeBox();
+			stabilizeBox(passedTime);
 		}
 		else if (phases[i] == FORWARD) {
 			autonDriveForward();
@@ -245,10 +256,10 @@ public class RobotAuton {
 			autonApproachForward();
 		}
 		else if (phases[i] == LIFT) {
-			liftElevator();
+			liftElevator(1);
 		}
 		else if (phases[i] == RELEASE) {
-			releaseBox();
+			runGrabber(.3);
 		}
 	}
 	

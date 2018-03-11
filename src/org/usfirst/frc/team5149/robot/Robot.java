@@ -260,7 +260,7 @@ public class Robot extends IterativeRobot {
 			phaseCounter++;
 			phaseStartTime = System.currentTimeMillis();
 		}else {
-			auton.runCurrentPhase(phaseCounter);
+			auton.runCurrentPhase(phaseCounter,elaspedPhaseTime);
 		}
 
 	}
