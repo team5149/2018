@@ -47,7 +47,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 
 public class Robot extends IterativeRobot {
 
-	private static final double FORWARD_SPEED = -.50;
+	private static final double FORWARD_SPEED = -.55;
 
 	private static final double APPROACH_SPEED = -.45;
 
@@ -207,7 +207,7 @@ public class Robot extends IterativeRobot {
 		CameraServer.getInstance().startAutomaticCapture();
 
 		SmartDashboard.putData("Auto choices", chooser);
-
+		
 		
 
 	}
@@ -315,11 +315,7 @@ public class Robot extends IterativeRobot {
 
 	 */
 
-	@Override
 
-	public void testPeriodic() {
-
-	}
 
 
 
@@ -481,7 +477,56 @@ public class Robot extends IterativeRobot {
 		leftGrabber.set(-1 *grabberPower * speedFactor);
 
 	}
-
+	
 	
 
+	boolean testDown = false;
+	double startTime;
+	@Override
+	
+	public void testPeriodic() {
+		if (driver.getRawButton(1)) {
+			if (!testDown){
+				startTime = System.currentTimeMillis();
+				testDown = true;
+			}
+			autonDriveForward();
+		}else if (!driver.getRawButton(1) && testDown){
+			testDown = false;
+			double elaspedTime = (System.currentTimeMillis() - startTime) / 1000;
+			System.out.println("that was " + elaspedTime + " seconds");
+		}
+	} 
+	public void autonDriveForward() {
+		double angle = gyro.getAngle();
+		double power = -.55;
+		if (angle > 180) {
+			angle -= 360;
+
+		}
+
+		if (angle > 10 || angle < -10) {
+
+			double kp = 0.011;
+
+			double output = kp * angle;
+
+			double leftPower = power - output;
+
+			double rightPower = power + output;
+			
+			leftPower *= -1;
+			rightPower *= -1;
+
+			robot.tankDrive(rightPower, leftPower);
+
+		}
+
+		else {
+
+			robot.tankDrive(power, power);
+
+		}
+
+	}
 }
