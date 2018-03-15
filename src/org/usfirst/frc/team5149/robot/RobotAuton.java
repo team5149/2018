@@ -25,7 +25,7 @@ public class RobotAuton {
 	private ADXRS450_Gyro gyro;
 	private DigitalInput topSwitch;
 	private DigitalInput bottomSwitch;
-	public RobotAuton(int position,DifferentialDrive robotPassed, Spark rightPassed, Spark leftPassed, Talon elevatorPassed, ADXRS450_Gyro gyroPassed,DigitalInput topSwitchPassed, DigitalInput bottomSwitchPassed,char ourSwitch, char ourScale) {
+	public RobotAuton(char position,DifferentialDrive robotPassed, Spark rightPassed, Spark leftPassed, Talon elevatorPassed, ADXRS450_Gyro gyroPassed,DigitalInput topSwitchPassed, DigitalInput bottomSwitchPassed,char ourSwitch, char ourScale) {
 		robot = robotPassed;
 		rightArm = rightPassed;
 		leftArm = leftPassed;
@@ -34,7 +34,7 @@ public class RobotAuton {
 		topSwitch = topSwitchPassed;
 		bottomSwitch = bottomSwitchPassed;
 		
-		if (position == 0 || position == 5) {
+		if (position == 'R') {
 			if (ourSwitch == 'R') {
 				phases = new int[6];
 				phases[0] = STABILIZE;
@@ -76,7 +76,7 @@ public class RobotAuton {
 			}
 			
 		}
-		else if (position == 1 || position == 4) {
+		else if (position == 'M') {
 			phases = new int[2];
 			phases[0] = STABILIZE;
 			phases[1] = FORWARD;
@@ -84,7 +84,7 @@ public class RobotAuton {
 			times[0] = 3000;
 			times[1] = 1000;
 		}
-		else if (position == 2 || position == 3) {
+		else if (position == 'L') {
 			if (ourSwitch == 'L') {
 				phases = new int[6];
 				phases[0] = STABILIZE;

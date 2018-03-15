@@ -135,13 +135,24 @@ public class Robot extends IterativeRobot {
 
 	private static final int DRIVER_LEFT_BUMPER = 2;
 
-	private static final int MANIPULATOR_RELEASE_BUTTON = 0;
+
+	private static final char POSITION = 'R';
+
+	private static final int DRIVER_SWITCH_DIRECTION_BUTTON = 3;
+
+	private static final int MANIPULATOR_SWITCHMODE_BUTTON = 1;
 
 	static boolean down = false;
 
 	static boolean switchMode = false;
-
 	
+	static boolean switchDirectionDown = false;
+	
+	static boolean switchDirection = false;
+
+	static boolean switchModeManipulator = false;
+	
+	static boolean switchModeManipulatorDown = false;
 
 	Talon leftMotor = new Talon(LEFT_MOTOR_PORT);
 
@@ -234,7 +245,7 @@ public class Robot extends IterativeRobot {
 		gyro.reset();
 		phaseCounter = 0;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
-		auton = new RobotAuton(0,robot,rightGrabber,leftGrabber,elevator,gyro,topSwitch,bottomSwitch,gameData.charAt(0),gameData.charAt(1));
+		auton = new RobotAuton(POSITION,robot,rightGrabber,leftGrabber,elevator,gyro,topSwitch,bottomSwitch,gameData.charAt(0),gameData.charAt(1));
 		phaseStartTime = System.currentTimeMillis();
 		
 	}
@@ -254,13 +265,14 @@ public class Robot extends IterativeRobot {
 	public void autonomousPeriodic() {
 
 		double elaspedPhaseTime = System.currentTimeMillis() - phaseStartTime;
-
-		if (auton.times[phaseCounter] < elaspedPhaseTime) {
-			auton.zeroAllMotors();
-			phaseCounter++;
-			phaseStartTime = System.currentTimeMillis();
-		}else {
-			auton.runCurrentPhase(phaseCounter,elaspedPhaseTime);
+		if (phaseCounter < auton.times.length) {
+			if (auton.times[phaseCounter] < elaspedPhaseTime) {
+				auton.zeroAllMotors();
+				phaseCounter++;
+				phaseStartTime = System.currentTimeMillis();
+			}else {
+				auton.runCurrentPhase(phaseCounter,elaspedPhaseTime);
+			}
 		}
 
 	}
@@ -314,12 +326,6 @@ public class Robot extends IterativeRobot {
 
 	public void driveOptions() {
 
-		// When true, the power values will be multiplied by the slow power, reducing the total power
-
-				
-
-			
-
 					double leftPower;		// Amount of power that should go to the left motor (between 0 and 1)
 
 					double rightPower;		// Amount of power that should go the the right motor (between 0 and 1)
@@ -327,55 +333,30 @@ public class Robot extends IterativeRobot {
 					double speedFactor;		// Factor by which the left and right powers are multiplied by, will reduce powers if less than 1
 
 					boolean switchModeButton; // Keeps track of button, that when pressed, will toggle the state of switchMode 
-
-					double rightOffset; // The offset of the rightPower, which when greater than 0, will curve the robot right
-
-					double leftOffset;  // The offset of the leftPower, which when greater than 0, will curve the robot left
-
-					double rightMultipler;  // Amount by which the rightOffset is multiplied by, used to increase the sharpness of the curve 
-
-					double leftMultipler;	// Amount by which the leftOffset is multiplied by, used to increase the sharpness of the curve
-
-					int dpad;			// Keeps track of which dPad direction is pressed
+					
+					boolean switchDirectionButton; // Keeps track of button, that when pressed, will toggle the state of switchDirection
+					
+					boolean rightTrigger;	 // See's if right trigger is pressed
+					boolean leftTrigger; 	// See's if left trigger is pressed
+					int dpad;				// Keeps track of which dPad direction is pressed
 
 					
-
+					
 					
 
 					leftPower  = driver.getRawAxis(DRIVER_LEFT_AXIS);		// Get the position of the left axis 
 
 					rightPower = driver.getRawAxis(DRIVER_RIGHT_AXIS);		// Get the position of the right axis
 
-					
+					rightTrigger = driver.getRawButton(DRIVER_RIGHT_TRIGGER);
+					leftTrigger = driver.getRawButton(DRIVER_LEFT_TRIGGER);
 
 					switchModeButton = driver.getRawButton(DRIVER_SWITCH_MODE_BUTTON);	// Get the current state of the switchModeButton
-
-					
-
-					rightMultipler = driver.getRawAxis(DRIVER_RIGHT_BUMPER);		// Get the intensity of the right bumper
-
-					leftMultipler = driver.getRawAxis(DRIVER_LEFT_BUMPER);		// Get the intensity of the left bumper
-
-					
-
-					rightOffset = .4 * (1+rightMultipler);		
-
-					leftOffset = .4 * (1 + leftMultipler);
-
 			
-
+					switchDirectionButton = driver.getRawButton(DRIVER_SWITCH_DIRECTION_BUTTON);
 					dpad = driver.getPOV(0);				// Get the dpad direction pressed in degrees
 
 					
-
-					if (rightPower < 0)
-
-						rightOffset *= -1;
-
-					if (leftPower < 0)
-
-						leftOffset *= -1;
-
 					
 
 					if (switchModeButton && !down) {		// down checks if the button was already pressed
@@ -390,84 +371,67 @@ public class Robot extends IterativeRobot {
 
 					}
 
-
+					if (switchDirectionButton && !switchDirectionDown) {
+						switchDirection = !switchDirection;
+						switchDirectionDown = true;
+					}else if (!switchDirectionButton) {
+						switchDirectionDown = false;
+					}
 
 					speedFactor = (switchMode) ? .5 : 1;
 
-
+					if (switchDirection) {
+						double tmp;
+						tmp = leftPower;			//Swap
+						leftPower = rightPower;
+						rightPower = tmp;
+						rightPower *= -1;			// negate
+						leftPower *= -1;
+					}
 
 					leftPower = leftPower * speedFactor;
 
 					rightPower = rightPower * speedFactor;
-
 					
-
-					if (!driver.getRawButton(DRIVER_RIGHT_TRIGGER))
-
-						rightOffset = 0;
-
-					if (!driver.getRawButton(DRIVER_LEFT_TRIGGER))
-
-						leftOffset = 0;
-
-
-
-					switch (dpad) {
-
-					case DRIVER_SPIN_RIGHT_POV:
-
+					if (rightTrigger) {
 						robot.tankDrive(1 * speedFactor, -1 * speedFactor);
-
-						break;
-
-					case DRIVER_SPIN_LEFT_POV:
-
-						robot.tankDrive(-1 * speedFactor, 1 * speedFactor);
-
-						break;
-
-					case 180:
-
-						robot.tankDrive(rightPower - rightOffset, rightPower - leftOffset);
-
-						break;
-
-
-
-						
-
-					default:
-
-						
-
-						robot.tankDrive(rightPower - rightOffset, leftPower-leftOffset);
-
 					}
-
-						
-
-					//boolean state = limitSwitch.get();
-
-			
-
-					//SmartDashboard.putBoolean("The switch is ", state);
-
-					//System.out.println("the switch is currently " + state);
-
-					 
-
-		
+					else if (leftTrigger) {
+						robot.tankDrive(-1 * speedFactor, 1 * speedFactor);
+					}
+					else {
+						switch (dpad) {
+	
+						case 180:
+							if (switchDirection)
+								rightPower = leftPower;
+							
+							robot.tankDrive(rightPower, rightPower);
+	
+							break;
+	
+						default:
+							robot.tankDrive(rightPower, leftPower);
+	
+						}
+					}
+					
 
 	}
 
 	
 
 	public void elevator() {
-
+		
 		double elevatorPower = manipulator.getRawAxis(ELEVATOR_AXIS);
-
+		
+		if (manipulator.getRawButton(MANIPULATOR_SWITCHMODE_BUTTON) && !switchModeManipulatorDown) {
+			switchModeManipulator = !switchModeManipulator;
+			switchModeManipulatorDown = true;
+		}else if (!manipulator.getRawButton(MANIPULATOR_SWITCHMODE_BUTTON)) {
+			switchModeManipulatorDown = false;
+		}
 		setElevatorPowerSafe(elevatorPower);
-
 		
 
 	}
@@ -484,8 +448,10 @@ public class Robot extends IterativeRobot {
 
 		boolean stopBottom = elevatorPower > 0 && bottom;
 
+		double speedFactor;
 		
-
+		speedFactor = (switchModeManipulator) ? .5 : 1;
+		
 		if (stopTop || stopBottom) {
 
 			elevator.set(0);
@@ -494,7 +460,7 @@ public class Robot extends IterativeRobot {
 
 		else {
 
-			elevator.set(elevatorPower);
+			elevator.set(elevatorPower * speedFactor);
 
 		}
 
@@ -506,15 +472,14 @@ public class Robot extends IterativeRobot {
 
 		double grabberPower = manipulator.getRawAxis(GRABBER_AXIS);
 
-		if (manipulator.getRawButton(MANIPULATOR_RELEASE_BUTTON)) {
+		double speedFactor;
+		
+		
+		speedFactor = (switchModeManipulator) ? .5 : 1;
+		
+		rightGrabber.set(grabberPower * speedFactor);
 
-			grabberPower = -.5;
-
-		}
-
-		rightGrabber.set(grabberPower);
-
-		leftGrabber.set(-1 *grabberPower);
+		leftGrabber.set(-1 *grabberPower * speedFactor);
 
 	}
 
