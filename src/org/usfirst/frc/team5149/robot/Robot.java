@@ -263,14 +263,13 @@ public class Robot extends IterativeRobot {
 	@Override
 
 	public void autonomousPeriodic() {
-
 		double elaspedPhaseTime = System.currentTimeMillis() - phaseStartTime;
 		if (phaseCounter < auton.times.length) {
 			if (auton.times[phaseCounter] < elaspedPhaseTime) {
 				auton.zeroAllMotors();
 				phaseCounter++;
 				phaseStartTime = System.currentTimeMillis();
-			}else {
+			} else {
 				auton.runCurrentPhase(phaseCounter,elaspedPhaseTime);
 			}
 		}

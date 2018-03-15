@@ -14,6 +14,8 @@ public class RobotAuton {
 	private final int APPROACH = 4;
 	private final int LIFT = 5;
 	private final int RELEASE = 6;
+	private final int TURNLEFTSCALE = 7;
+	private final int TURNRIGHTSCALE = 8;
 
 	
 	public int[] phases;
@@ -55,7 +57,7 @@ public class RobotAuton {
 				phases = new int[6];
 				phases[0] = STABILIZE;
 				phases[1] = FORWARD;
-				phases[2] = TURNLEFT;
+				phases[2] = TURNLEFTSCALE;
 				phases[3] = APPROACH;
 				phases[4] = LIFT;
 				phases[5] = RELEASE;
@@ -105,7 +107,7 @@ public class RobotAuton {
 				phases = new int[6];
 				phases[0] = STABILIZE;
 				phases[1] = FORWARD;
-				phases[2] = TURNRIGHT;
+				phases[2] = TURNRIGHTSCALE;
 				phases[3] = APPROACH;
 				phases[4] = LIFT;
 				phases[5] = RELEASE;
@@ -196,6 +198,32 @@ public class RobotAuton {
 
 		robot.tankDrive(output, -1 * output);
 	}
+	public void turnScaleAngleRight() {
+		double desiredAngle = 45;
+
+		double angle = gyro.getAngle();
+
+		double kp = 0.011;
+
+		double error = desiredAngle - angle;
+
+		double output = error * kp;
+
+		robot.tankDrive(output, -1 * output);
+	}
+	public void turnScaleAngleLeft() {
+		double desiredAngle = -45;
+
+		double angle = gyro.getAngle();
+
+		double kp = 0.011;
+
+		double error = desiredAngle - angle;
+
+		double output = error * kp;
+
+		robot.tankDrive(output, -1 * output);
+	}
 	public void autonDriveForward() {
 		double angle = gyro.getAngle();
 		double power = .55;
@@ -240,27 +268,38 @@ public class RobotAuton {
 		elevator.set(0);
 	}
 	public void runCurrentPhase(int i,double passedTime) {
-		if (phases[i] == STABILIZE) {
+		
+		switch (phases[i]) {
+		case STABILIZE:
 			stabilizeBox(passedTime);
-		}
-		else if (phases[i] == FORWARD) {
+			break;
+		case FORWARD:
 			autonDriveForward();
-		}
-		else if (phases[i] == TURNRIGHT) {
+			break;
+		case TURNRIGHT:
 			turnRightAngle();
-		}
-		else if (phases[i] == TURNLEFT) {
+			break;
+		case TURNLEFT:
 			turnLeftAngle();
-		}
-		else if (phases[i] == APPROACH) {
+			break;
+		case APPROACH:
 			autonApproachForward();
-		}
-		else if (phases[i] == LIFT) {
+			break;
+		case LIFT:
 			liftElevator(1);
-		}
-		else if (phases[i] == RELEASE) {
+			break;
+		case RELEASE:
 			runGrabber(.3);
+			break;
+		case TURNLEFTSCALE:
+			turnScaleAngleLeft();
+			break;
+		case TURNRIGHTSCALE:
+			turnScaleAngleRight();
+			break;
 		}
+		
+	
 	}
 	
 }
